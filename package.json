@@ -1,0 +1,28 @@
+{
+  "name": "fore",
+  "version": "1.0.0",
+  "description": "fore client library",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "keywords": [
+    "fore",
+    "foresight"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git-url"
+  },
+  "bugs": {
+    "url": "git-url/issues"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "pandas-js": "^0.2.4",
+    "uuid": "^9.0.1"
+  }
+}
