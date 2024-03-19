@@ -1,12 +1,13 @@
-import Foresight from "../index.js";
-const apiToken = "your-api-token";
-const foresightClient = new Foresight(apiToken);
+import Foresight, { MetricType } from "../index.js";
+
+const apiToken = "b56b556505be436fb483a77ddfed27b2";
+const foresight = new Foresight({ apiToken });
 
 // Example usage of createSimpleEvalset
-const evalsetId = "your-evalset-id";
+const evalsetId = "hr-test-evalset-1";
 const queries = ["query1", "query2"];
 const referenceAnswers = ["answer1", "answer2"];
 
-foresightClient.createSimpleEvalset(evalsetId, queries, referenceAnswers)
-    .then(response => console.log(response))
-    .catch(error => console.error(error));
+foresight.createSimpleEvalset({ evalsetId, queries, referenceAnswers })
+    .then(response => console.log("response", response))
+    .catch(error => console.error("error", error));

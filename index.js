@@ -1,3 +1,7 @@
 import Foresight from "./lib/client";
+import { MetricType } from "./lib/utils";
 
-export default Foresight;
+export {
+    Foresight as default,
+    MetricType,
+};
