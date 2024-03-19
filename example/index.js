@@ -1,6 +1,6 @@
-import Foresight, { MetricType } from "../index.js";
+import { Foresight, MetricType } from "../index.js";
 
-const apiToken = "b56b556505be436fb483a77ddfed27b2";
+const apiToken = "api-token";
 const foresight = new Foresight({ apiToken });
 
 // Example usage of createSimpleEvalset

@@ -1,7 +1,7 @@
-import Foresight from "./lib/client";
-import { MetricType } from "./lib/utils";
+import Foresight from "./lib/client.js";
+import { MetricType } from "./lib/utils.js";
 
 export {
-    Foresight as default,
+    Foresight,
     MetricType,
 };
