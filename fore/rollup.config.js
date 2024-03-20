@@ -9,9 +9,11 @@ const buildConfig = (format, extension) => ({
     output: {
         file: `${outputFile}.${format}.${extension ?? 'js'}`,
         format,
-        plugins: [terser()]
     },
-    plugins: [autoExternal()],
+    plugins: [
+        autoExternal(),
+        terser(),
+    ],
 });
 
 export default [

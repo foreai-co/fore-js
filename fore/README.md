@@ -7,7 +7,7 @@ You can sign-up as a beta tester at https://foreai.co.
 
 ## Quick start
 
-1.  Install the package using `pip`:
+1.  Install the package using `npm`:
 
     ```bash
     npm install fore
@@ -35,7 +35,7 @@ You can sign-up as a beta tester at https://foreai.co.
     - Or alternatively to curate your evalsets and run regular evals against them do:
 
     ```javascript
-    const { Foresight } = require("fore");
+    const { Foresight, MetricType } = require("fore");
 
     const foresight = new Foresight({ apiToken: "<YOUR_API_TOKEN>" });
 
@@ -59,7 +59,7 @@ You can sign-up as a beta tester at https://foreai.co.
       // Here is some demo code:
 
       return {
-        generated_response: query.includes("hardest") ? "Malbolge" : "Python",
+        generatedResponse: query.includes("hardest") ? "Malbolge" : "Python",
         contexts: [
           "Malbolge is the hardest language",
           "Python is the easiest language",
@@ -67,7 +67,10 @@ You can sign-up as a beta tester at https://foreai.co.
       };
     };
 
-    foresight.generateAnswersAndRunEval(myGenerateGn, runConfig);
+    foresight.generateAnswersAndRunEval({
+      generateFn: myGenerateGn,
+      runConfig,
+    });
     ```
 
 ## Metrics

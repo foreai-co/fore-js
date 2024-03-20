@@ -4,7 +4,7 @@
   "description": "fore client library",
   "type": "module",
   "engines": {
-    "node": ">=12.22.7"
+    "node": ">=14.21.3"
   },
   "exports": {
     ".": {
