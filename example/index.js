@@ -1,4 +1,4 @@
-import { Foresight, MetricType } from "../index.js";
+const { Foresight, MetricType } = require("fore");
 
 const apiToken = "api-token";
 const foresight = new Foresight({ apiToken });

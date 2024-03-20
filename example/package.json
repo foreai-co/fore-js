@@ -1,13 +1,11 @@
 {
   "name": "fore-example",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
-  "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "fore": "^0.0.1"
+  }
 }
