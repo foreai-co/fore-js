@@ -4,7 +4,7 @@
 
 // Converts a dictionary to a pandas DataFrame.
 export function convertToPandasDataFrame(data) {
-    return null;
+    return data;
     // return new DataFrame(data);
 }
 

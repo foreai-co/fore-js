@@ -4,7 +4,7 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { convertToPandasDataFrame, MetricType } from './utils.js';
 
-const GATEWAY_URL = "https://foresight-userservice-dev.azurewebsites.net"; //"https://foresight-gateway.foreai.co";
+const GATEWAY_URL = "https://foresight-gatewayservice-dev.azurewebsites.net"; //"https://foresight-gateway.foreai.co";
 const UI_URL = "https://icy-sand.foreai.co"; //"https://foresight.foreai.co";
 const MAX_ENTRIES_BEFORE_FLUSH = 10;
 
@@ -51,6 +51,7 @@ class Foresight {
 
             return response.data;
         } catch (error) {
+            if (error.response) this.logging.error("api:error:", `${error.response.status} : ${error.response.statusText}`);
             throw error;
         }
     }
@@ -60,7 +61,10 @@ class Foresight {
      * @param {string} params.evalsetId - String identifier of the evaluation set.
      * @param {string[]} params.queries - A list of queries.
      * @param {string[]} params.referenceAnswers - Optional list of references/ground truth.
-     * @returns {Promise<{evalset_id: string, num_entries: int}>} - an EvalsetMetadata object or raises an HTTPError on failure.
+     * @returns {Promise<{
+     *  evalset_id: string, 
+     *  num_entries: int
+     * }>} - an EvalsetMetadata object or raises an HTTPError on failure.
      * @throws {Error} - An error from the API request.
      * */
     async createSimpleEvalset({ evalsetId, queries, referenceAnswers = null }) {
@@ -97,7 +101,15 @@ class Foresight {
     /** Gets the evaluation set with metadata.
      * @param {object} params - The parameters object.
      * @param {string} params.evalsetId - String identifier of the evaluation set.
-     * @returns {Promise<any>} - an Evalset object or raises an HTTPError on failure.
+     * @returns {Promise<{
+     *  evalset_id: string, 
+     *  entries: [{
+     *      creation_time: string, 
+     *      entry_id: string, 
+     *      query: string, 
+     *      reference_answer: string 
+     *  }]
+     * }>} - an Evalset object or raises an HTTPError on failure.
      * @throws {Error} - An error from the API request.
      * */
     async getEvalset({ evalsetId }) {
@@ -113,7 +125,7 @@ class Foresight {
     /** Gets the queries associated with an eval run.
      * @param {object} params - The parameters object.
      * @param {string} params.experimentId - String identifier of the evaluation run.
-     * @returns {Promise<any>} - a object with (entry_id, query) pairs, or raises an HTTPError on failure.
+     * @returns {Promise<{string: string}>} - a object with (entry_id, query) pairs, or raises an HTTPError on failure.
      * @throws {Error} - An error from the API request. 
      * */
     async getEvalrunQueries({ experimentId }) {
@@ -131,7 +143,9 @@ class Foresight {
      *   @param {string} runConfig.evalsetId - The identifier for the evalset to use for the evaluation.
      *   @param {string} runConfig.experimentId - The identifier for the evaluation run.
      *   @param {MetricType[]} runConfig.metrics - The metrics to be computed for the evaluation.
-     * @returns {Promise<any>} - the HTTP response on success or raises an HTTPError on failure.
+     * @returns {Promise<{
+     *  experiment_id: string,
+     * }>} - the HTTP response on success or raises an HTTPError on failure.
      * @throws {Error} - An error from the API request.
      * */
     async createEvalrun({ runConfig }) {
@@ -145,7 +159,7 @@ class Foresight {
             });
 
             this.logging.info(`Eval run with experimentId ${runConfig.experimentId} created.`);
-            return response;
+            return { experiment_id: runConfig.experimentId };
         } catch (error) {
             const errorResponse = error.message;
             this.logging.error("createEvalrun:error:", errorResponse);
@@ -162,7 +176,7 @@ class Foresight {
      *   @param {string} params.runConfig.evalsetId - The identifier for the evalset to use for the evaluation.
      *   @param {string} params.runConfig.experimentId - The identifier for the evaluation run.
      *   @param {MetricType[]} params.runConfig.metrics - The metrics to be computed for the evaluation.
-     * @returns {Promise<any>} - the HTTP response on success or raises an HTTPError on failure.
+     * @returns {Promise<string>} - the HTTP response on success or raises an HTTPError on failure.
      * @throws {Error} - An error from the API request.
      * */
     async generateAnswersAndRunEval({ generateFn, runConfig }) {
@@ -198,7 +212,7 @@ class Foresight {
 
     /** Flush the log entries and run evals on them.
      * Currently only Groundedness evals are run on the log entries.
-     * @returns {Promise<any>} - The HTTP response on success or raises an HTTPError on failure.
+     * @returns {Promise<string>} - The HTTP response on success or raises an HTTPError on failure.
      */
     async flush() {
         try {

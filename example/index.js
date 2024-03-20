@@ -6,44 +6,54 @@ const foresight = new Foresight({ apiToken });
 const runSample = async () => {
     try {
         const evalsetId = "hr-test-evalset-1";
-        const queries = ["query1", "query2"];
-        const referenceAnswers = ["answer1", "answer2"];
-
-        const savedEvalset = await foresight.createSimpleEvalset({ evalsetId, queries, referenceAnswers })
-        console.log("runSample:createSimpleEvalset:", savedEvalset)
-
-        const existingEvalset = await foresight.getEvalset({ evalsetId: savedEvalset.evalset_id })
-        console.log("runSample:getEvalset:", existingEvalset)
-
-        const experimentId = "hr-test-experiment-1";
-        const savedEvalrun = await foresight.createEvalrun({ evalsetId: existingEvalset.id, experimentId, metrics: [MetricType.GROUNDEDNESS] })
-        console.log("runSample:createEvalrun:", savedEvalrun)
-
-        const existingEvalrun = await foresight.getEvalrunQueries({ evalsetId: savedEvalrun.id })
-        console.log("runSample:getEvalrunQueries:", existingEvalrun)
+        const experimentId = "hr-test-experiment-1"
+        const experimentId2 = "hr-test-experiment-2"
 
         {
-            const runConfig = {
-                evalsetId: "hr-test-evalset-2",
-                experimentId: "hr-test-experiment-2",
-                metrics: [MetricType.GROUNDEDNESS, MetricType.SIMILARITY],
-            };
+            const savedEvalset = await foresight.createSimpleEvalset({
+                evalsetId,
+                queries: ["query1", "query2"],
+                referenceAnswers: ["answer1", "answer2"]
+            })
+            console.log("runSample:createSimpleEvalset:", savedEvalset)
 
-            const myGenerateGn = (query) => {
-                // Do the LLM processing with your model...
-                // Here is some demo code:
+            const existingEvalset = await foresight.getEvalset({ evalsetId: savedEvalset.evalset_id })
+            console.log("runSample:getEvalset:", existingEvalset)
 
-                return {
-                    generatedResponse: query.includes("hardest") ? "Malbolge" : "Python",
-                    contexts: [
-                        "Malbolge is the hardest language",
-                        "Python is the easiest language",
-                    ],
-                };
-            };
+            const savedEvalrun = await foresight.createEvalrun({
+                runConfig: {
+                    evalsetId: existingEvalset.evalset_id,
+                    experimentId,
+                    metrics: [MetricType.GROUNDEDNESS]
+                }
+            })
+            console.log("runSample:createEvalrun:", savedEvalrun)
 
-            const results = await foresight.generateAnswersAndRunEval({ generateFn: myGenerateGn, runConfig })
-            console.log("runSample:generateAnswersAndRunEval:", results)
+            const existingEvalrun = await foresight.getEvalrunQueries({ experimentId: savedEvalrun.experiment_id })
+            console.log("runSample:getEvalrunQueries:", existingEvalrun)
+        }
+
+        {
+            const status = await foresight.generateAnswersAndRunEval({
+                generateFn: (query) => {
+                    // Do the LLM processing with your model...
+                    // Here is some demo code:
+
+                    return {
+                        generatedResponse: query.includes("hardest") ? "Malbolge" : "Python",
+                        contexts: [
+                            "Malbolge is the hardest language",
+                            "Python is the easiest language",
+                        ],
+                    };
+                },
+                runConfig: {
+                    evalsetId,
+                    experimentId: experimentId2,
+                    metrics: [MetricType.GROUNDEDNESS, MetricType.SIMILARITY],
+                }
+            })
+            console.log("runSample:generateAnswersAndRunEval:", status)
         }
 
         {
@@ -53,8 +63,8 @@ const runSample = async () => {
                 contexts: ["Python rated the easiest programming language"],
             });
 
-            const results = await foresight.flush();
-            console.log("runSample:flush:", results)
+            const status = await foresight.flush();
+            console.log("runSample:flush:", status)
         }
 
         {
