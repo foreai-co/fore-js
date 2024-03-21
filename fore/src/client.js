@@ -18,12 +18,13 @@ const MAX_ENTRIES_BEFORE_FLUSH = 10;
  * @throws {Error} - An error from the API request.
  * */
 class Foresight {
-    constructor({ apiToken, apiUrl = GATEWAY_URL, uiUrl = UI_URL, maxEntriesBeforeAutoFlush = MAX_ENTRIES_BEFORE_FLUSH, logLevel = 'info' }) {
+    constructor({ apiToken, apiUrl = GATEWAY_URL, uiUrl = UI_URL, maxEntriesBeforeAutoFlush = MAX_ENTRIES_BEFORE_FLUSH, logLevel = 'info', axiosInstance }) {
         this.apiToken = apiToken;
         this.apiUrl = apiUrl;
         this.uiUrl = uiUrl;
         this.maxEntriesBeforeAutoFlush = maxEntriesBeforeAutoFlush;
 
+        this.axiosInstance = axiosInstance || axios.create();
         this.timeoutSeconds = 60;
         this.logEntries = [];
         this.logging = console;
@@ -40,7 +41,7 @@ class Foresight {
      * */
     async _makeRequest({ method, endpoint, params = null, inputJson = null }) {
         try {
-            const response = await axios({
+            const response = await this.axiosInstance.request({
                 method,
                 url: `${this.apiUrl}${endpoint}`,
                 headers: { Authorization: `Bearer ${this.apiToken}` },

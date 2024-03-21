@@ -16,7 +16,8 @@
     "./README.md": "./README.md"
   },
   "scripts": {
-    "build": "rollup --config"
+    "build": "rollup --config",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "author": "",
   "license": "ISC",
