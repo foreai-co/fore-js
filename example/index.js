@@ -1,7 +1,7 @@
+require("dotenv").config({ path: '../.env' });
 const { Foresight, MetricType } = require("fore");
 
-const apiToken = "api-token";
-const foresight = new Foresight({ apiToken });
+const foresight = new Foresight({ apiToken: process.env.API_TOKEN });
 
 const runSample = async () => {
     try {
