@@ -1,0 +1,30 @@
+name: build-test-fore-js
+run-name: Build and test by ${{ github.actor }}, PR ${{ github.ref }}
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+
+      - name: Install dependencies
+        run: npm install --prefix fore
+
+      - name: Build package (if necessary)
+        run: npm run build --prefix fore
+
+      - name: Publish to npm
+        run: npm publish --prefix fore --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
