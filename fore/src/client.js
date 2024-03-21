@@ -58,9 +58,9 @@ class Foresight {
 
     /** Creates a simple evalset from a list of queries and references.
      * @param {object} params - The parameters object.
-     * @param {string} params.evalsetId - String identifier of the evaluation set.
-     * @param {string[]} params.queries - A list of queries.
-     * @param {string[]} params.referenceAnswers - Optional list of references/ground truth.
+     *  @param {string} params.evalsetId - String identifier of the evaluation set.
+     *  @param {string[]} params.queries - A list of queries.
+     *  @param {string[]} params.referenceAnswers - Optional list of references/ground truth.
      * @returns {Promise<{
      *  evalset_id: string, 
      *  num_entries: int
@@ -100,7 +100,7 @@ class Foresight {
 
     /** Gets the evaluation set with metadata.
      * @param {object} params - The parameters object.
-     * @param {string} params.evalsetId - String identifier of the evaluation set.
+     *  @param {string} params.evalsetId - String identifier of the evaluation set.
      * @returns {Promise<{
      *  evalset_id: string, 
      *  entries: [{
@@ -124,7 +124,7 @@ class Foresight {
 
     /** Gets the queries associated with an eval run.
      * @param {object} params - The parameters object.
-     * @param {string} params.experimentId - String identifier of the evaluation run.
+     *  @param {string} params.experimentId - String identifier of the evaluation run.
      * @returns {Promise<{string: string}>} - a object with (entry_id, query) pairs, or raises an HTTPError on failure.
      * @throws {Error} - An error from the API request. 
      * */
@@ -171,8 +171,8 @@ class Foresight {
      * This method calls the generate_fn on each query in the evalset, triggers 
      * the metric computation and caches all results in a new eval run.
      * @param {object} params - The parameters object.
-     * @param {function} params.generateFn - A function that takes a query and returns an InferenceOutput.
-     * @param {object} params.runConfig - The configuration for running the eval.
+     *  @param {function} params.generateFn - A function that takes a query and returns an InferenceOutput.
+     *  @param {object} params.runConfig - The configuration for running the eval.
      *   @param {string} params.runConfig.evalsetId - The identifier for the evalset to use for the evaluation.
      *   @param {string} params.runConfig.experimentId - The identifier for the evaluation run.
      *   @param {MetricType[]} params.runConfig.metrics - The metrics to be computed for the evaluation.
@@ -242,9 +242,9 @@ class Foresight {
      * If the number of entries is greater than `maxEntriesBeforeAutoFlush`, then flushes the log entries as
      * well.
      * @param {object} params - The parameters object.
-     * @param {string} params.query - The query for evaluation.
-     * @param {string} params.response - The response from your AI system.
-     * @param {string[]} params.contexts - List of contexts relevant to the query.
+     *  @param {string} params.query - The query for evaluation.
+     *  @param {string} params.response - The response from your AI system.
+     *  @param {string[]} params.contexts - List of contexts relevant to the query.
      */
     log({ query, response, contexts }) {
         try {
@@ -320,10 +320,10 @@ class Foresight {
 
     /** Gets the details of an evaluation run.
      * @param {object} params - The parameters object.
-     * @param {string} params.experimentId - String identifier of the evaluation run.
-     * @param {string} params.sortBy - The field to sort by.
-     * @param {number} params.limit - The maximum number of entries to return.
-     * @param {boolean} params.convertToDataframe - If True, returns a DataFrame instead of a 
+     *  @param {string} params.experimentId - String identifier of the evaluation run.
+     *  @param {string} params.sortBy - The field to sort by.
+     *  @param {number} params.limit - The maximum number of entries to return.
+     *  @param {boolean} params.convertToDataframe - If True, returns a DataFrame instead of a 
      * EvalRunDetails object. Requires pandas to be installed.
      * @returns {Promise<any>} - an EvalRunDetails object or raises an HTTPError on failure. 
      * If pandas is installed and convertToDataframe is set to True, 

@@ -29,7 +29,7 @@ You can sign-up as a beta tester at https://foreai.co.
     // You can add more such queries using foresight.log
     // ....
 
-    foresight.flush();
+    await foresight.flush();
     ```
 
     - Or alternatively to curate your evalsets and run regular evals against them do:
@@ -39,7 +39,7 @@ You can sign-up as a beta tester at https://foreai.co.
 
     const foresight = new Foresight({ apiToken: "<YOUR_API_TOKEN>" });
 
-    const evalset = foresight.createSimpleEvalset({
+    const evalset = await foresight.createSimpleEvalset({
       evalsetId: "programming-languages",
       queries: [
         "hardest programming language?",
@@ -67,7 +67,7 @@ You can sign-up as a beta tester at https://foreai.co.
       };
     };
 
-    foresight.generateAnswersAndRunEval({
+    await foresight.generateAnswersAndRunEval({
       generateFn: myGenerateGn,
       runConfig,
     });
