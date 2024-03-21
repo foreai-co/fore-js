@@ -6,7 +6,7 @@ const foresight = new Foresight({ apiToken: process.env.API_TOKEN });
 const runSample = async () => {
     try {
         const evalsetId = "hr-test-evalset-1";
-        const experimentId = "hr-test-experiment-1"
+        const experimentId = "hr-test-experiment-3"
         const experimentId2 = "hr-test-experiment-2"
 
         {
@@ -17,19 +17,19 @@ const runSample = async () => {
             })
             console.log("runSample:createSimpleEvalset:", savedEvalset)
 
-            const existingEvalset = await foresight.getEvalset({ evalsetId: savedEvalset.evalset_id })
+            const existingEvalset = await foresight.getEvalset({ evalsetId })
             console.log("runSample:getEvalset:", existingEvalset)
 
             const savedEvalrun = await foresight.createEvalrun({
                 runConfig: {
-                    evalsetId: existingEvalset.evalset_id,
+                    evalsetId,
                     experimentId,
                     metrics: [MetricType.GROUNDEDNESS]
                 }
             })
             console.log("runSample:createEvalrun:", savedEvalrun)
 
-            const existingEvalrun = await foresight.getEvalrunQueries({ experimentId: savedEvalrun.experiment_id })
+            const existingEvalrun = await foresight.getEvalrunQueries({ experimentId })
             console.log("runSample:getEvalrunQueries:", existingEvalrun)
         }
 

@@ -2,6 +2,7 @@
 
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
+// import { camelizeKeys, decamelizeKeys } from 'humps';
 import { convertToPandasDataFrame, MetricType } from './utils.js';
 
 const GATEWAY_URL = "https://foresight-gatewayservice-dev.azurewebsites.net"; //"https://foresight-gateway.foreai.co";
@@ -29,6 +30,17 @@ class Foresight {
         this.logEntries = [];
         this.logging = console;
         this.logging.info("Foresight client initialized");
+
+        // this.axiosInstance.interceptors.response.use((response) => {
+        //     if (
+        //         response.data &&
+        //         response.headers['content-type'] === 'application/json'
+        //     ) {
+        //         response.data = camelizeKeys(response.data);
+        //     }
+
+        //     return response;
+        // });
     }
 
     /** Makes an HTTP request to the API.
