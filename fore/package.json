@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "axios": "^1.6.8",
-    "pandas-js": "^0.2.4",
+    "dataframe-js": "^1.4.4",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

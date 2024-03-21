@@ -1,11 +1,10 @@
 'use strict';
 
-// import { DataFrame } from 'pandas-js';
+import DataFrame from "dataframe-js";
 
 // Converts a dictionary to a pandas DataFrame.
 export function convertToPandasDataFrame(data) {
-    return data;
-    // return new DataFrame(data);
+    return new DataFrame(data);
 }
 
 export const MetricType = {
