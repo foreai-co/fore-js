@@ -14,28 +14,27 @@ const mockMaxEntriesBeforeAutoFlush = 2;
 const mockEvalsetId = 'mock-evalset-id';
 const mockQueries = ['query1', 'query2', 'query3'];
 const mockReferenceAnswers = ['answer1', 'answer2', 'answer3'];
+const mockEvalsetResponse = { evalsetId: mockEvalsetId, numEntries: 3 };
+
 const mockExperimentId = 'mock-experiment-id';
 const mockMetrics = ['metric1', 'metric2'];
 const mockGenerateFn = jest.fn();
 
 const mockDetails = {
+    experimentId: mockExperimentId,
     entries: [
         {
-            input: { query: 'query1', reference_answer: 'answer1' },
-            output: { generated_response: 'response1', source_docids: [], contexts: [] },
-            metric_values: { metric1: 0.5, metric2: 0.8 }
+            input: { query: 'query1', referenceAnswer: 'answer1' },
+            output: { generatedResponse: 'response1', sourceDocids: [], contexts: [] },
+            metricValues: { metric1: 0.5, metric2: 0.8 }
         },
         {
-            input: { query: 'query2', reference_answer: 'answer2' },
-            output: { generated_response: 'response2', source_docids: [], contexts: [] },
-            metric_values: { metric1: 0.7, metric2: 0.6 }
+            input: { query: 'query2', referenceAnswer: 'answer2' },
+            output: { generatedResponse: 'response2', sourceDocids: [], contexts: [] },
+            metricValues: { metric1: 0.7, metric2: 0.6 }
         }
     ]
 };
-
-// Mock Axios
-const axiosInstance = axios.create({ baseURL: mockApiUrl });
-const mockAxios = new MockAdapter(axiosInstance);
 
 // Mock console.log
 global.console = {
@@ -45,9 +44,13 @@ global.console = {
 };
 
 describe('Foresight Test', () => {
+    let mockAxios;
     let foresight;
 
     beforeEach(() => {
+        // Mock Axios
+        const axiosInstance = axios.create({ baseURL: mockApiUrl });
+        mockAxios = new MockAdapter(axiosInstance);
         foresight = new Foresight({ axiosInstance, apiToken: mockApiToken, apiUrl: mockApiUrl, maxEntriesBeforeAutoFlush: mockMaxEntriesBeforeAutoFlush });
         foresight.timeoutSeconds = mockTimeout;
     });
@@ -58,19 +61,35 @@ describe('Foresight Test', () => {
 
     describe('createSimpleEvalset', () => {
         it('should create a simple evalset', async () => {
-            const mockResponse = { evalset_id: mockEvalsetId, num_entries: 3 };
-            mockAxios.onPost(`/api/eval/set`).reply(200, mockResponse);
+            mockAxios.onPost(`/api/eval/set`).reply(200, mockEvalsetResponse);
+
+            const response = await foresight.createSimpleEvalset({ evalsetId: mockEvalsetId, queries: mockQueries });
+
+            expect(response).toEqual(mockEvalsetResponse);
+        });
+    });
+
+    describe('createSimpleEvalsetWithReferences', () => {
+        it('should create a simple evalset with references', async () => {
+            mockAxios.onPost(`/api/eval/set`).reply(200, mockEvalsetResponse);
 
             const response = await foresight.createSimpleEvalset({ evalsetId: mockEvalsetId, queries: mockQueries, referenceAnswers: mockReferenceAnswers });
 
-            expect(response).toEqual(mockResponse);
-            expect(console.info).toHaveBeenCalledWith(`Eval set with evalsetId ${mockEvalsetId} created.`);
+            expect(response).toEqual(mockEvalsetResponse);
+        });
+    });
+
+    describe('createSimpleEvalsetWithNotEnoughReferences', () => {
+        it('should create a simple evalset with not enough references', async () => {
+            const response = foresight.createSimpleEvalset({ evalsetId: mockEvalsetId, queries: mockQueries, referenceAnswers: mockReferenceAnswers.slice(0, 1) });
+
+            await expect(response).rejects.toThrowError("Number of queries and references must match.");
         });
     });
 
     describe('getEvalset', () => {
         it('should get the evaluation set with metadata', async () => {
-            const mockResponse = { evalset_id: mockEvalsetId, entries: [] };
+            const mockResponse = { evalsetId: mockEvalsetId, entries: [] };
             mockAxios.onGet('/api/eval/set').reply(200, mockResponse);
 
             const response = await foresight.getEvalset({ evalsetId: mockEvalsetId });
@@ -92,109 +111,78 @@ describe('Foresight Test', () => {
 
     describe('createEvalrun', () => {
         it('should create an evaluation run', async () => {
-            const mockResponse = { experiment_id: mockExperimentId };
+            const mockResponse = "success";
             mockAxios.onPost('/api/eval/run').reply(200, mockResponse);
 
             const response = await foresight.createEvalrun({ runConfig: { evalsetId: mockEvalsetId, experimentId: mockExperimentId, metrics: mockMetrics } });
 
-            expect(response).toEqual({ experiment_id: mockExperimentId });
-            expect(console.info).toHaveBeenCalledWith(`Eval run with experimentId ${mockExperimentId} created.`);
+            expect(response).toEqual(mockResponse);
         });
     });
 
-    // describe('generateAnswersAndRunEval', () => {
-    //     it('should generate answers and run an eval', async () => {
-    //         mockAxios.onAny().reply(200);
+    describe('generateAnswersAndRunEval', () => {
+        it('should generate answers and run an eval', async () => {
+            const mockResponse = "success";
+            mockAxios.onAny().reply(200, mockResponse);
 
-    //         const response = await foresight.generateAnswersAndRunEval({
-    //             generateFn: mockGenerateFn,
-    //             runConfig: { evalsetId: mockEvalsetId, experimentId: mockExperimentId, metrics: mockMetrics }
-    //         });
+            const response = await foresight.generateAnswersAndRunEval({
+                generateFn: (query) => {
+                    return {
+                        generatedResponse: query.includes("hardest") ? "Malbolge" : "Python",
+                        contexts: [
+                            "Malbolge is the hardest language",
+                            "Python is the easiest language",
+                        ],
+                    };
+                },
+                runConfig: { evalsetId: mockEvalsetId, experimentId: mockExperimentId, metrics: mockMetrics }
+            });
 
-    //         expect(response).toBeUndefined();
-    //         expect(console.info).toHaveBeenCalledWith(`Eval run successful. Visit ${foresight.uiUrl} to view results.`);
-    //     });
-    // });
+            expect(response).toEqual(mockResponse);
+        });
+    });
 
-    // describe('flush', () => {
-    //     it('should flush log entries', async () => {
-    //         mockAxios.onAny().reply(200);
+    describe('log', () => {
+        it('should add log entries', async () => {
+            await foresight.log({ query: 'test query', response: 'test response', contexts: [] });
+            expect(foresight.logEntries.length).toBe(1);
+        });
 
-    //         foresight.log({ query: 'test query', response: 'test response', contexts: [] });
-    //         await foresight.flush();
+        it('should auto flush when log entries exceed maxEntriesBeforeAutoFlush', async () => {
+            mockAxios.onAny().reply(200);
 
-    //         expect(console.log).toHaveBeenCalledWith(`Log entries flushed successfully. Visit ${foresight.uiUrl} to view results.`);
-    //         expect(foresight.logEntries).toEqual([]);
-    //     });
+            for (let i = 0; i < mockMaxEntriesBeforeAutoFlush; i++) {
+                await foresight.log({ query: `test query ${i}`, response: `test response ${i}`, contexts: [] });
+            }
 
-    //     it('should handle no log entries to flush', async () => {
-    //         await foresight.flush();
-    //         expect(console.info).toHaveBeenCalledWith('No log entries to flush.');
-    //     });
-    // });
+            expect(foresight.logEntries.length).toBe(0);
+        });
+    });
 
-    // describe('log', () => {
-    //     it('should add log entries', () => {
-    //         foresight.log({ query: 'test query', response: 'test response', contexts: [] });
-    //         expect(foresight.logEntries.length).toBe(1);
-    //     });
+    describe('flush', () => {
+        it('should flush log entries', async () => {
+            mockAxios.onAny().reply(200);
 
-    //     it('should auto flush when log entries exceed maxEntriesBeforeAutoFlush', async () => {
-    //         mockAxios.onAny().reply(200);
+            await foresight.log({ query: 'test query', response: 'test response', contexts: [] });
+            await foresight.flush();
 
-    //         for (let i = 0; i < 11; i++) {
-    //             foresight.log({ query: `test query ${i}`, response: `test response ${i}`, contexts: [] });
-    //         }
+            expect(foresight.logEntries.length).toBe(0);
+        });
 
-    //         expect(console.log).toHaveBeenCalledWith(`Log entries flushed successfully. Visit ${foresight.uiUrl}to view results.`);
-    //         expect(foresight.logEntries).toEqual([]);
-    //     });
+        it('should handle no log entries to flush', async () => {
+            await foresight.flush();
+            expect(console.info).toHaveBeenCalledWith('No log entries to flush.');
+        });
+    });
 
-    //     it('should handle errors when adding log entries', () => {
-    //         const errorMessage = 'Error adding log entry';
-    //         jest.spyOn(console, 'error').mockImplementation(() => { });
+    describe('getEvalrunDetails', () => {
+        it('should get evaluation run details', async () => {
+            mockAxios.onGet('/api/eval/run/details').reply(200, mockDetails);
 
-    //         foresight.log({ query: 'test query', response: 'test response', contexts: [] });
-    //         expect(console.error).not.toHaveBeenCalled();
+            const response = await foresight.getEvalrunDetails({ experimentId: mockExperimentId, convertToDataframe: false });
 
-    //         jest.spyOn(foresight, 'flush').mockRejectedValue(new Error(errorMessage));
-
-    //         foresight.log({ query: 'test query', response: 'test response', contexts: [] });
-    //         expect(console.error).toHaveBeenCalledWith(`log:error: ${errorMessage}`);
-    //     });
-    // });
-
-    // describe('getEvalrunDetails', () => {
-    //     it('should get evaluation run details', async () => {
-    //         mockAxios.onGet('/api/eval/run/details').reply(200, mockDetails);
-
-    //         const response = await foresight.getEvalrunDetails({ experimentId: mockExperimentId });
-
-    //         expect(response).toEqual(mockDetails);
-    //     });
-
-    //     it('should get evaluation run details and convert to DataFrame', async () => {
-    //         jest.mock('./utils.js', () => ({
-    //             convertToPandasDataFrame: jest.fn().mockResolvedValue('DataFrame')
-    //         }));
-
-    //         mockAxios.onGet('/api/eval/run/details').reply(200, mockDetails);
-
-    //         const response = await foresight.getEvalrunDetails({ experimentId: mockExperimentId, convertToDataframe: true });
-
-    //         expect(response).toBe('DataFrame');
-    //     });
-
-    //     it('should handle errors when getting evaluation run details', async () => {
-    //         mockAxios.onGet('/api/eval/run/details').reply(404);
-
-    //         try {
-    //             await foresight.getEvalrunDetails({ experimentId: mockExperimentId });
-    //         } catch (error) {
-    //             expect(error.message).toBe('Request failed with status code 404');
-    //             expect(console.error).toHaveBeenCalled();
-    //         }
-    //     });
-    // });
+            expect(response).toEqual(mockDetails);
+        });
+    });
 });
 
