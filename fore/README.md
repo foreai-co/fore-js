@@ -20,7 +20,7 @@ You can sign-up as a beta tester at https://foreai.co.
 
     const foresight = new Foresight({ apiToken: "<YOUR_API_TOKEN>" });
 
-    foresight.log({
+    await foresight.log({
       query: "What is the easiest programming language?",
       response: "Python",
       contexts: ["Python rated the easiest programming language"],

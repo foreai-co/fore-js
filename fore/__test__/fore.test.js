@@ -3,7 +3,7 @@ import MockAdapter from 'axios-mock-adapter';
 import { v4 as uuidv4 } from 'uuid';
 import { jest } from '@jest/globals'
 
-import { Foresight, MetricType } from '../index.js';
+import { Foresight, MetricType } from '../index.js';//index.js//dist/fore.es.js
 
 // Mock data
 const mockApiToken = 'VERY_SECRET_TOKEN';

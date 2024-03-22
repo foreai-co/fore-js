@@ -57,7 +57,7 @@ const runSample = async () => {
         }
 
         {
-            foresight.log({
+            await foresight.log({
                 query: "What is the easiest programming language?",
                 response: "Python",
                 contexts: ["Python rated the easiest programming language"],

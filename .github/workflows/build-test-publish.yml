@@ -1,12 +1,12 @@
-name: build-test-fore-js
-run-name: Build and test by ${{ github.actor }}, PR ${{ github.ref }}
+name: build-test-publish
+run-name: Build, test, and publish by ${{ github.actor }}, PR ${{ github.ref }}
 
 on:
   pull_request:
     branches: ["main"]
 
 jobs:
-  publish:
+  build-test-publish:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,6 +21,9 @@ jobs:
 
       - name: Install dependencies
         run: npm install --prefix fore
+
+      - name: Run tests
+        run: npm test --prefix fore
 
       - name: Build package (if necessary)
         run: npm run build --prefix fore

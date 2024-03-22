@@ -2,23 +2,26 @@
 
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-// import { camelizeKeys, decamelizeKeys } from 'humps';
+import { camelizeKeys } from 'humps';
 import { convertToPandasDataFrame, MetricType } from './utils.js';
 
 const GATEWAY_URL = "https://foresight-gatewayservice-dev.azurewebsites.net"; //"https://foresight-gateway.foreai.co";
 const UI_URL = "https://icy-sand.foreai.co"; //"https://foresight.foreai.co";
 const MAX_ENTRIES_BEFORE_FLUSH = 10;
 
-/** The main client class for the foresight API. 
- * @param {string} apiToken - The API token to use for requests.
- * @param {string} apiUrl - The URL of the API to use for requests.
- * @param {string} uiUrl - The URL of the UI to use for requests.
- * @param {number} maxEntriesBeforeAutoFlush - The number of log entries to accumulate before flushing.
- * @param {string} logLevel - The log level to use for the client.
- * @returns {Foresight} - A new Foresight client.
- * @throws {Error} - An error from the API request.
- * */
+/** The main client class for the foresight API.
+ * @class Foresight
+ */
 class Foresight {
+    /** 
+     * @param {object} params - The parameters object.
+     *  @param {string} params.apiToken - The API token to use for requests.
+     *  @param {string?} params.apiUrl - The URL of the API to use for requests.
+     *  @param {string?} params.uiUrl - The URL of the UI to use for requests.
+     *  @param {number?} params.maxEntriesBeforeAutoFlush - The number of log entries to accumulate before flushing.
+     * @returns {Foresight} - A new Foresight client.
+     * @throws {Error} - An error from the API request.
+     * */
     constructor({ apiToken, apiUrl = GATEWAY_URL, uiUrl = UI_URL, maxEntriesBeforeAutoFlush = MAX_ENTRIES_BEFORE_FLUSH, logLevel = 'info', axiosInstance }) {
         this.apiToken = apiToken;
         this.apiUrl = apiUrl;
@@ -31,23 +34,23 @@ class Foresight {
         this.logging = console;
         this.logging.info("Foresight client initialized");
 
-        // this.axiosInstance.interceptors.response.use((response) => {
-        //     if (
-        //         response.data &&
-        //         response.headers['content-type'] === 'application/json'
-        //     ) {
-        //         response.data = camelizeKeys(response.data);
-        //     }
+        this.axiosInstance.interceptors.response.use((response) => {
+            if (response.data) {
+                try {
+                    response.data = camelizeKeys(response.data);
+                } catch (_) { }
+            }
 
-        //     return response;
-        // });
+            return response;
+        });
     }
 
     /** Makes an HTTP request to the API.
-     * @param {string} method - The HTTP method to use.
-     * @param {string} endpoint - The API endpoint to call.
-     * @param {object?} params - The query parameters to include in the request.
-     * @param {object} inputJson - The JSON payload to include in the request.
+     * @param {object} input - The parameters object.
+     *  @param {string} input.method - The HTTP method to use.
+     *  @param {string} input.endpoint - The API endpoint to call.
+     *  @param {object|null} [input.params=null] - The query parameters to include in the request.
+     *  @param {object|null} [input.inputJson=null] - The JSON payload to include in the request.
      * @returns {Promise<object>} - The response data from the API.
      * @throws {Error} - An error from the API request.
      * */
@@ -73,10 +76,10 @@ class Foresight {
      * @param {object} params - The parameters object.
      *  @param {string} params.evalsetId - String identifier of the evaluation set.
      *  @param {string[]} params.queries - A list of queries.
-     *  @param {string[]} params.referenceAnswers - Optional list of references/ground truth.
+     *  @param {string[]?} params.referenceAnswers - Optional list of references/ground truth.
      * @returns {Promise<{
-     *  evalset_id: string, 
-     *  num_entries: int
+     *  evalsetId: string, 
+     *  numEntries: int
      * }>} - an EvalsetMetadata object or raises an HTTPError on failure.
      * @throws {Error} - An error from the API request.
      * */
@@ -115,12 +118,12 @@ class Foresight {
      * @param {object} params - The parameters object.
      *  @param {string} params.evalsetId - String identifier of the evaluation set.
      * @returns {Promise<{
-     *  evalset_id: string, 
+     *  evalsetId: string, 
      *  entries: [{
-     *      creation_time: string, 
-     *      entry_id: string, 
+     *      creationTime: string, 
+     *      entryId: string, 
      *      query: string, 
-     *      reference_answer: string 
+     *      referenceAnswer: string 
      *  }]
      * }>} - an Evalset object or raises an HTTPError on failure.
      * @throws {Error} - An error from the API request.
@@ -138,7 +141,7 @@ class Foresight {
     /** Gets the queries associated with an eval run.
      * @param {object} params - The parameters object.
      *  @param {string} params.experimentId - String identifier of the evaluation run.
-     * @returns {Promise<{string: string}>} - a object with (entry_id, query) pairs, or raises an HTTPError on failure.
+     * @returns {Promise<{[entryId: string]: string}>} - An object with (entryId, query) pairs, or raises an HTTPError on failure.
      * @throws {Error} - An error from the API request. 
      * */
     async getEvalrunQueries({ experimentId }) {
@@ -156,9 +159,7 @@ class Foresight {
      *   @param {string} runConfig.evalsetId - The identifier for the evalset to use for the evaluation.
      *   @param {string} runConfig.experimentId - The identifier for the evaluation run.
      *   @param {MetricType[]} runConfig.metrics - The metrics to be computed for the evaluation.
-     * @returns {Promise<{
-     *  experiment_id: string,
-     * }>} - the HTTP response on success or raises an HTTPError on failure.
+     * @returns {Promise<string>} - the HTTP response on success or raises an HTTPError on failure.
      * @throws {Error} - An error from the API request.
      * */
     async createEvalrun({ runConfig }) {
@@ -172,7 +173,7 @@ class Foresight {
             });
 
             this.logging.info(`Eval run with experimentId ${runConfig.experimentId} created.`);
-            return { experiment_id: runConfig.experimentId };
+            return response;
         } catch (error) {
             const errorResponse = error.message;
             this.logging.error("createEvalrun:error:", errorResponse);
@@ -199,10 +200,10 @@ class Foresight {
             const queries = await this.getEvalrunQueries({ experimentId });
             const outputs = {};
 
-            for (const [entry_id, query] of Object.entries(queries)) {
+            for (const [entryId, query] of Object.entries(queries)) {
                 const { generatedResponse, contexts } = generateFn(query);
 
-                outputs[entry_id] = {
+                outputs[entryId] = {
                     generated_response: generatedResponse,
                     contexts,
                 };
@@ -259,7 +260,7 @@ class Foresight {
      *  @param {string} params.response - The response from your AI system.
      *  @param {string[]} params.contexts - List of contexts relevant to the query.
      */
-    log({ query, response, contexts }) {
+    async log({ query, response, contexts }) {
         try {
             const inferenceOutput = {
                 generated_response: response,
@@ -276,7 +277,7 @@ class Foresight {
             if (this.logEntries.length >= this.maxEntriesBeforeAutoFlush) {
                 // Auto flush if the number of entries is greater than a
                 // certain threshold.
-                this.flush();
+                await this.flush();
             }
         } catch (error) {
             const errorResponse = error.message;
@@ -325,7 +326,7 @@ class Foresight {
                 }
             }
 
-            return convertToPandasDataFrame(df);
+            return convertToPandasDataFrame(camelizeKeys(df));
         } catch (error) {
             throw error;
         }
@@ -334,9 +335,9 @@ class Foresight {
     /** Gets the details of an evaluation run.
      * @param {object} params - The parameters object.
      *  @param {string} params.experimentId - String identifier of the evaluation run.
-     *  @param {string} params.sortBy - The field to sort by.
-     *  @param {number} params.limit - The maximum number of entries to return.
-     *  @param {boolean} params.convertToDataframe - If True, returns a DataFrame instead of a 
+     *  @param {string?} params.sortBy - The field to sort by.
+     *  @param {number?} params.limit - The maximum number of entries to return.
+     *  @param {boolean?} params.convertToDataframe - If True, returns a DataFrame instead of a 
      * EvalRunDetails object. Requires pandas to be installed.
      * @returns {Promise<any>} - an EvalRunDetails object or raises an HTTPError on failure. 
      * If pandas is installed and convertToDataframe is set to True, 
@@ -353,14 +354,13 @@ class Foresight {
             }
 
             const response = await this._makeRequest({ method: "get", endpoint: "/api/eval/run/details", params });
-            const details = response;
 
             if (convertToDataframe) {
                 // Build a DataFrame from the response.
-                return await this._convertEvalRunDetailsToDataFrame(details);
+                return await this._convertEvalRunDetailsToDataFrame(response);
             }
 
-            return details;
+            return response;
         } catch (error) {
             const errorResponse = error.message;
             this.logging.error("getEvalrunDetails:error:", errorResponse);
