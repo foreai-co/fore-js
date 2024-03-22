@@ -2,11 +2,11 @@
 
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import { camelizeKeys } from 'humps';
+import humps from 'humps';
 import { convertToPandasDataFrame, MetricType } from './utils.js';
 
-const GATEWAY_URL = "https://foresight-gatewayservice-dev.azurewebsites.net"; //"https://foresight-gateway.foreai.co";
-const UI_URL = "https://icy-sand.foreai.co"; //"https://foresight.foreai.co";
+const GATEWAY_URL = "https://foresight-gateway.foreai.co";
+const UI_URL = "https://foresight.foreai.co";
 const MAX_ENTRIES_BEFORE_FLUSH = 10;
 
 /** The main client class for the foresight API.
@@ -35,9 +35,15 @@ class Foresight {
         this.logging.info("Foresight client initialized");
 
         this.axiosInstance.interceptors.response.use((response) => {
-            if (response.data) {
+            const excludedPaths = ["/api/eval/run/queries"];
+            const url = response.config.url; // Get the request URL
+
+            // Check if the request URL matches the specified path
+            if (url && excludedPaths.some(x => url.includes(x))) {
+                return response; // Don't modify response data
+            } else if (response.data) {
                 try {
-                    response.data = camelizeKeys(response.data);
+                    response.data = humps.camelizeKeys(response.data);
                 } catch (_) { }
             }
 
@@ -326,7 +332,7 @@ class Foresight {
                 }
             }
 
-            return convertToPandasDataFrame(camelizeKeys(df));
+            return convertToPandasDataFrame(humps.camelizeKeys(df));
         } catch (error) {
             throw error;
         }
