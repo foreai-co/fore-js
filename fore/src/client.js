@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import humps from 'humps';
+import { camelizeKeys } from './utils.js';
 
 const GATEWAY_URL = "https://foresight-gateway.foreai.co";
 const UI_URL = "https://foresight.foreai.co";
@@ -44,7 +44,7 @@ class Foresight {
                 return response; // Don't modify response data
             } else if (response.data) {
                 try {
-                    response.data = humps.camelizeKeys(response.data);
+                    response.data = camelizeKeys(response.data);
                 } catch (_) { /* empty */ }
             }
 
@@ -318,6 +318,43 @@ class Foresight {
         } catch (error) {
             const errorResponse = error.message;
             this.logging.error("getEvalrunDetails:error:", errorResponse);
+            throw new Error(errorResponse);
+        }
+    }
+
+    /** Gets the summaries of an evaluation run with pagination.
+     * @param {object} params - The parameters object.
+     *  @param {string?} params.evalsetId - String identifier of the evaluation set.
+     *  @param {string?} params.experimentIdContains - To search by String identifier of the evaluation run.
+     * @param {string?} [params.sortBy] - The field to sort by. Possible values are:
+     *   - "experiment_id": Sorts by the experiment ID of the evaluation run.
+     *   - "evalset_id": Sorts by the evaluation set ID of the evaluation run.
+     *   - "creation_time": Sorts by the creation time of the evaluation run.
+     *  @param {boolean?} params.sortAscending - Whether to sort in ascending order.
+     *  @param {number?} params.limit - The maximum number of entries to return.
+     *  @param {number?} params.offset - The offset of the entries to return.
+     * @returns {Promise<any>} - an EvalRunDetails object or raises an HTTPError on failure. 
+     * @throws {Error} - An error from the API request.
+     */
+    async getEvalrunSummaries({ evalsetId, experimentIdContains, sortBy = "creation_time", sortAscending = false, limit = 50, offset = 0 } = {}) {
+        try {
+            const params = {};
+
+            if (evalsetId) params.evalset_id = evalsetId;
+
+            if (experimentIdContains) params.experiment_id_contains = experimentIdContains;
+
+            if (limit !== null && sortBy !== null) {
+                params.sort_field_name = sortBy;
+                params.sort_ascending = sortAscending;
+                params.limit = limit.toString();
+                params.offset = offset.toString();
+            }
+
+            return await this._makeRequest({ method: "get", endpoint: "/api/eval/run/summaries", params });
+        } catch (error) {
+            const errorResponse = error.message;
+            this.logging.error("getEvalrunSummaries:error:", errorResponse);
             throw new Error(errorResponse);
         }
     }

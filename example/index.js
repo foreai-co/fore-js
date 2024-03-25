@@ -69,8 +69,14 @@ const runSample = async () => {
 
         {
             const details = await foresight.getEvalrunDetails({ experimentId })
-            //toDSV() || toCSV() || toTSV() || toPSV() || toText() || toJSON() || toDict() || toArray() || toCollection()
-            console.log("runSample:getEvalrunDetails:", details?.toCollection())
+            console.log("runSample:getEvalrunDetails:")
+            console.dir(details, { depth: null })
+        }
+
+        {
+            const summaries = await foresight.getEvalrunSummaries()
+            console.log("runSample:getEvalrunSummaries:")
+            console.dir(summaries, { depth: null })
         }
     } catch (error) {
         console.error("runSample:error:", error.message)
