@@ -3,7 +3,6 @@
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import humps from 'humps';
-import { convertToPandasDataFrame, MetricType } from './utils.js';
 
 const GATEWAY_URL = "https://foresight-gateway.foreai.co";
 const UI_URL = "https://foresight.foreai.co";
@@ -22,7 +21,7 @@ class Foresight {
      * @returns {Foresight} - A new Foresight client.
      * @throws {Error} - An error from the API request.
      * */
-    constructor({ apiToken, apiUrl = GATEWAY_URL, uiUrl = UI_URL, maxEntriesBeforeAutoFlush = MAX_ENTRIES_BEFORE_FLUSH, logLevel = 'info', axiosInstance }) {
+    constructor({ apiToken, apiUrl = GATEWAY_URL, uiUrl = UI_URL, maxEntriesBeforeAutoFlush = MAX_ENTRIES_BEFORE_FLUSH, axiosInstance }) {
         this.apiToken = apiToken;
         this.apiUrl = apiUrl;
         this.uiUrl = uiUrl;
@@ -34,6 +33,8 @@ class Foresight {
         this.logging = console;
         this.logging.info("Foresight client initialized");
 
+        // Add a response interceptor to modify the response data before it is returned to the caller
+        // camelizeKeys is used to convert snake_case keys to camelCase
         this.axiosInstance.interceptors.response.use((response) => {
             const excludedPaths = ["/api/eval/run/queries"];
             const url = response.config.url; // Get the request URL
@@ -44,7 +45,7 @@ class Foresight {
             } else if (response.data) {
                 try {
                     response.data = humps.camelizeKeys(response.data);
-                } catch (_) { }
+                } catch (_) { /* empty */ }
             }
 
             return response;
@@ -292,52 +293,6 @@ class Foresight {
         }
     }
 
-    /** Converts an EvalRunDetails object to a DataFrame.
-     * @param {object} details - The EvalRunDetails object to convert.
-     */
-    async _convertEvalRunDetailsToDataFrame(details) {
-        try {
-            const df = {
-                query: [],
-                reference_answer: [],
-                generated_answer: [],
-                source_docids: [],
-                contexts: [],
-            };
-
-            // TODO: use this line when we implement all metrics.
-            // const evalMetrics = Object.keys(MetricType);
-            const evalMetrics = [MetricType.GROUNDEDNESS, MetricType.SIMILARITY];
-
-            for (const m of evalMetrics) {
-                df[m.toLowerCase()] = [];
-            }
-
-            for (const entry of details.entries) {
-                df.query.push(entry.input.query);
-                df.reference_answer.push(entry.input.reference_answer);
-                df.generated_answer.push(entry.output.generated_response);
-                df.source_docids.push(entry.output.source_docids);
-                df.contexts.push(entry.output.contexts);
-
-                // TODO: once we implement batching / parallel processing,
-                // make an update here to handle the case of entries with not
-                // yet computed metrics.
-                for (const m of evalMetrics) {
-                    if (m in entry.metric_values) {
-                        df[m.toLowerCase()].push(entry.metric_values[m]);
-                    } else {
-                        df[m.toLowerCase()].push(null);
-                    }
-                }
-            }
-
-            return convertToPandasDataFrame(humps.camelizeKeys(df));
-        } catch (error) {
-            throw error;
-        }
-    }
-
     /** Gets the details of an evaluation run.
      * @param {object} params - The parameters object.
      *  @param {string} params.experimentId - String identifier of the evaluation run.
@@ -350,7 +305,7 @@ class Foresight {
      * the results are converted to a DataFrame.
      * @throws {Error} - An error from the API request.
      */
-    async getEvalrunDetails({ experimentId, sortBy = "input.query", limit = 100, convertToDataframe = true }) {
+    async getEvalrunDetails({ experimentId, sortBy = "input.query", limit = 100 }) {
         try {
             const params = { experiment_id: experimentId };
 
@@ -359,14 +314,7 @@ class Foresight {
                 params.limit = limit.toString();
             }
 
-            const response = await this._makeRequest({ method: "get", endpoint: "/api/eval/run/details", params });
-
-            if (convertToDataframe) {
-                // Build a DataFrame from the response.
-                return await this._convertEvalRunDetailsToDataFrame(response);
-            }
-
-            return response;
+            return await this._makeRequest({ method: "get", endpoint: "/api/eval/run/details", params });
         } catch (error) {
             const errorResponse = error.message;
             this.logging.error("getEvalrunDetails:error:", errorResponse);
