@@ -1,5 +1,5 @@
 require("dotenv").config({ path: '../.env' });
-const { Foresight, MetricType } = require("fore-js");
+const { Foresight, MetricType } = require("fore-ai");
 
 const foresight = new Foresight({ apiToken: process.env.API_TOKEN });
 

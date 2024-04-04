@@ -16,7 +16,7 @@ You can sign-up as a beta tester at https://foreai.co.
 2.  - Get started with the following lines:
 
     ```javascript
-    const { Foresight } = require("fore-js");
+    const { Foresight } = require("fore-ai");
 
     const foresight = new Foresight({ apiToken: "<YOUR_API_TOKEN>" });
 
@@ -35,7 +35,7 @@ You can sign-up as a beta tester at https://foreai.co.
     - Or alternatively to curate your evalsets and run regular evals against them do:
 
     ```javascript
-    const { Foresight, MetricType } = require("fore-js");
+    const { Foresight, MetricType } = require("fore-ai");
 
     const foresight = new Foresight({ apiToken: "<YOUR_API_TOKEN>" });
 
