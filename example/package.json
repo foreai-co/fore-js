@@ -7,6 +7,6 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^16.4.5",
-    "fore": "^0.0.1"
+    "fore-js": "^0.0.1"
   }
 }

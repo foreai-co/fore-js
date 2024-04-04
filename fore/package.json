@@ -1,5 +1,5 @@
 {
-  "name": "fore",
+  "name": "fore-js",
   "version": "0.0.1",
   "description": "fore client library",
   "type": "module",
@@ -19,11 +19,14 @@
     "build": "rollup --config",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
-  "author": "",
+  "author": "info@foreai.co",
   "license": "ISC",
   "keywords": [
     "fore",
-    "foresight"
+    "foresight",
+    "rag",
+    "llm",
+    "evaluation"
   ],
   "repository": {
     "type": "git",
