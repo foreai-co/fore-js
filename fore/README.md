@@ -10,7 +10,7 @@ You can sign-up as a beta tester at https://foreai.co.
 1.  Install the package using `npm`:
 
     ```bash
-    npm install fore
+    npm install fore-ai
     ```
 
 2.  - Get started with the following lines:
