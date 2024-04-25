@@ -303,25 +303,39 @@ class Foresight {
 	 */
 	async flush() {
 		try {
-			if (this.logEntries.length === 0) {
+			const hasEntriesToFlush = Object.values(this.tagToLogEntries).some(
+				(logEntries) => logEntries.length > 0
+			);
+
+			if (!hasEntriesToFlush) {
 				this.logging.info("No log entries to flush.");
 				return;
 			}
 
-			const logRequest = { log_entries: this.logEntries };
+			let response;
+			for (const [tag, logEntries] of Object.entries(
+				this.tagToLogEntries
+			)) {
+				const logRequest = { log_entries: logEntries };
+				if (tag !== DEFAULT_TAG_NAME)
+					logRequest.experiment_id_prefix = tag;
 
-			const response = await this._makeRequest({
-				method: "put",
-				endpoint: "/api/eval/log",
-				inputJson: logRequest,
-			});
-			this.logging.log(
-				"Log entries flushed successfully. Visit %s to view results.",
-				this.uiUrl
-			);
+				response = await this._makeRequest({
+					method: "put",
+					endpoint: "/api/eval/log",
+					inputJson: logRequest,
+				});
 
-			// Clear log entries after flushing
-			this.logEntries = [];
+				this.logging.log(
+					"Log entries flushed successfully for tag %s. Visit %s to view results.",
+					tag,
+					this.uiUrl
+				);
+
+				// Clear log entries after flushing
+				this.tagToLogEntries[tag] = [];
+			}
+
 			return response;
 		} catch (error) {
 			const errorResponse = error.message;

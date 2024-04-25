@@ -209,27 +209,32 @@ class Foresight:
 
         Returns: The HTTP response on success or raises an HTTPError on failure.
         """
-        if not self.log_entries:
+        has_entries_to_flush = any(
+            len(entries) > 0 for entries in self.tag_to_log_entries.values())
+
+        if not has_entries_to_flush:
             logging.info("No log entries to flush.")
             return
 
-        log_request = LogRequest(log_entries=self.log_entries)
-        response = self.__make_request(
-            method="put",
-            endpoint="/api/eval/log",
-            input_json=log_request.model_dump(mode="json"))
+        for tag, log_entries in self.tag_to_log_entries.items():
+            log_request = LogRequest(
+                log_entries=log_entries,
+                experiment_id_prefix=(tag if tag != DEFAULT_TAG_NAME else None))
+            response = self.__make_request(
+                method="put",
+                endpoint="/api/eval/log",
+                input_json=log_request.model_dump(mode="json"))
 
-        if response.status_code == 200:
-            logging.info(
-                "Log entries flushed successfully. Visit %s to view results.",
-                self.ui_url)
-            # Clear log entries after flushing
-            self.log_entries.clear()
-        else:
-            logging.error(
-                "Flushing log entries failed with response code: %s",
-                response.status_code
-            )
+            if response.status_code == 200:
+                logging.info(
+                    "Log entries flushed successfully for %s tag."
+                    " Visit %s to view results.", tag, self.ui_url)
+                # Clear log entries after flushing
+                log_entries.clear()
+            else:
+                logging.error(
+                    "Flushing log entries failed with response code: %s",
+                    response.status_code)
 
         return response
 
