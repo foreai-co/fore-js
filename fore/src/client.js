@@ -339,8 +339,11 @@ class Foresight {
 	 *  @param {string} params.query - The query for evaluation.
 	 *  @param {string} params.response - The response from your AI system.
 	 *  @param {string[]} params.contexts - List of contexts relevant to the query.
+	 *  @param {string} params.tag - An optional tag for the request. e.g. "great-model-v01".
+	 *    This will be prepended to the name of the eval run (experiment_id).
+	 *    The complete eval run experiment_id will be of the form: "great-model-v01_logs_groundedness_YYYYMMDD.
 	 */
-	async log({ query, response, contexts }) {
+	async log({ query, response, contexts, tag }) {
 		try {
 			const inferenceOutput = {
 				generated_response: response,
@@ -352,9 +355,17 @@ class Foresight {
 				inference_output: inferenceOutput,
 			};
 
-			this.logEntries.push(logEntry);
+			tag = tag || DEFAULT_TAG_NAME;
 
-			if (this.logEntries.length >= this.maxEntriesBeforeAutoFlush) {
+			this.tagToLogEntries[tag] = [
+				...this.tagToLogEntries[tag],
+				logEntry,
+			];
+
+			if (
+				this.tagToLogEntries[tag].length >=
+				this.maxEntriesBeforeAutoFlush
+			) {
 				// Auto flush if the number of entries is greater than a
 				// certain threshold.
 				await this.flush();

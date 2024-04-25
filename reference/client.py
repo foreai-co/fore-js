@@ -233,7 +233,11 @@ class Foresight:
 
         return response
 
-    def log(self, query: str, response: str, contexts: list[str]) -> None:
+    def log(self,
+            query: str,
+            response: str,
+            contexts: list[str],
+            tag: str | None = None) -> None:
         """Add log entries for evaluation. This only adds the entries
         in memory, but does not send any requests to foresight service.
         To send the request, flush needs to be called.
@@ -246,13 +250,19 @@ class Foresight:
             query: The query for evaluation.
             response: The response from your AI system.
             contexts: List of contexts relevant to the query.
+            tag: An optional tag for the request. e.g. "great-model-v01".
+                This will be prepended to the name of the eval run
+                (experiment_id). The complete eval run experiment_id will be
+                of the form: "great-model-v01_logs_groundedness_YYYYMMDD"
         """
-        inference_output = InferenceOutput(
-            generated_response=response, contexts=contexts)
+        inference_output = InferenceOutput(generated_response=response,
+                                           contexts=contexts)
         log_entry = LogTuple(query=query, inference_output=inference_output)
-        self.log_entries.append(log_entry)
-        if len(self.log_entries) >= self.max_entries_before_auto_flush:
-            # Auto flush if the number of entries is greater than a
+        tag = tag if tag else DEFAULT_TAG_NAME
+        entries_for_tag = self.tag_to_log_entries[tag]
+        entries_for_tag.append(log_entry)
+        if len(entries_for_tag) >= self.max_entries_before_auto_flush:
+            # Auto flush if the number of entries for any tag is greater than a
             # certain threshold.
             self.flush()
 
