@@ -207,6 +207,10 @@ class TestForeSight(unittest.TestCase):
             return InferenceOutput(generated_response=query.upper(),
                                    contexts=[])
 
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_request.return_value = mock_response
+
         self.client.generate_answers_and_run_eval(
             generate_fn=generate_fn,
             run_config=EvalRunConfig(experiment_id="my_experiment",
@@ -242,6 +246,67 @@ class TestForeSight(unittest.TestCase):
             },
             timeout=TEST_TIMEOUT)
 
+    @patch("fore.foresight.client.Foresight.get_evalrun_queries",
+           mock_get_evalrun_queries)
+    @patch("requests.request")
+    def test_generate_answers_and_run_eval_batched(self, mock_request):
+
+        def generate_fn(query: str) -> InferenceOutput:
+            return InferenceOutput(generated_response=query.upper(),
+                                   contexts=[])
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_request.return_value = mock_response
+
+        self.client.generate_answers_and_run_eval(
+            generate_fn=generate_fn,
+            run_config=EvalRunConfig(experiment_id="my_experiment",
+                                     evalset_id="my_evalset",
+                                     metrics=[
+                                         MetricType.RELEVANCE,
+                                         MetricType.COMPLETENESS,
+                                         MetricType.GROUNDEDNESS,
+                                     ],
+                                     metadata={"my_key": "my_value"}),
+            batch_size=1)
+
+        # Skip the first request that creates the evalrun.
+        self.assertSequenceEqual(mock_request.call_args_list[1:], [
+            call(method="put",
+                 url=f"{TEST_URL}/api/eval/run/entries",
+                 headers={"Authorization": f"Bearer {TEST_TOKEN}"},
+                 params=None,
+                 json={
+                     "experiment_id": "my_experiment",
+                     "entry_id_to_inference_output": {
+                         "entry_id1": {
+                             "generated_response": "QUERY1",
+                             "contexts": [],
+                             "debug_info": None,
+                             "source_docids": None,
+                         },
+                     }
+                 },
+                 timeout=TEST_TIMEOUT),
+            call(method="put",
+                 url=f"{TEST_URL}/api/eval/run/entries",
+                 headers={"Authorization": f"Bearer {TEST_TOKEN}"},
+                 params=None,
+                 json={
+                     "experiment_id": "my_experiment",
+                     "entry_id_to_inference_output": {
+                         "entry_id2": {
+                             "generated_response": "QUERY2",
+                             "contexts": [],
+                             "debug_info": None,
+                             "source_docids": None,
+                         }
+                     }
+                 },
+                 timeout=TEST_TIMEOUT)
+        ])
+
     @patch("requests.request")
     def test_log_adds_entries(self, mock_request):
         """Tests for adding log entries."""
@@ -261,47 +326,73 @@ class TestForeSight(unittest.TestCase):
         llm_response3 = "test_response3"
         contexts3 = ["context5", "context6"]
 
+        query4 = "test_query4"
+        llm_response4 = "test_response4"
+        contexts4 = ["context7", "context8"]
+
         self.client.log(query1, llm_response1, contexts1)
+        self.client.log(query4, llm_response4, contexts4, tag="great_model")
         self.client.log(query2, llm_response2, contexts2)
         self.client.log(query3, llm_response3, contexts3)
 
-        mock_request.assert_called_with(
-            method="put",
-            url=f"{TEST_URL}/api/eval/log",
-            headers={"Authorization": f"Bearer {TEST_TOKEN}"},
-            params=None,
-            json={
-                "log_entries": [
-                    {
-                        "query": "test_query1",
-                        "inference_output": {
-                            "generated_response": "test_response1",
-                            "source_docids": None,
-                            "contexts": ["context1", "context2"],
-                            "debug_info": None
-                        }
-                    },
-                    {
-                        "query": "test_query2",
-                        "inference_output": {
-                            "generated_response": "test_response2",
-                            "source_docids": None,
-                            "contexts": ["context3", "context4"],
-                            "debug_info": None
-                        }
-                    }
-                ]
-            },
-            timeout=TEST_TIMEOUT)
+        expected_calls = [
+            call(method="put",
+                 url=f"{TEST_URL}/api/eval/log",
+                 headers={"Authorization": f"Bearer {TEST_TOKEN}"},
+                 params=None,
+                 json={
+                     "log_entries": [{
+                         "query": "test_query1",
+                         "inference_output": {
+                             "generated_response": "test_response1",
+                             "source_docids": None,
+                             "contexts": ["context1", "context2"],
+                             "debug_info": None
+                         }
+                     }, {
+                         "query": "test_query2",
+                         "inference_output": {
+                             "generated_response": "test_response2",
+                             "source_docids": None,
+                             "contexts": ["context3", "context4"],
+                             "debug_info": None
+                         }
+                     }],
+                     "experiment_id_prefix": None
+                 },
+                 timeout=TEST_TIMEOUT),
+            call(method="put",
+                 url=f"{TEST_URL}/api/eval/log",
+                 headers={"Authorization": f"Bearer {TEST_TOKEN}"},
+                 params=None,
+                 json={
+                     "log_entries": [{
+                         "query": "test_query4",
+                         "inference_output": {
+                             "generated_response": "test_response4",
+                             "source_docids": None,
+                             "contexts": ["context7", "context8"],
+                             "debug_info": None
+                         }
+                     },],
+                     "experiment_id_prefix": "great_model"
+                 },
+                 timeout=TEST_TIMEOUT)
+        ]
 
-        self.assertEqual(len(self.client.log_entries), 1)
-        self.assertListEqual(
-            self.client.log_entries,
-            [LogTuple(
-                query="test_query3",
-                inference_output=InferenceOutput(
-                    generated_response="test_response3",
-                    contexts=["context5", "context6"]))])
+        mock_request.assert_has_calls(expected_calls, any_order=True)
+
+        self.assertEqual(len(self.client.tag_to_log_entries), 2)
+        self.assertDictEqual(
+            self.client.tag_to_log_entries, {
+                "default": [
+                    LogTuple(query="test_query3",
+                             inference_output=InferenceOutput(
+                                 generated_response="test_response3",
+                                 contexts=["context5", "context6"]))
+                ],
+                "great_model": []
+            })
 
     @patch("requests.request")
     def test_flush_sends_request_and_clears_entries(self, mock_request):
@@ -310,35 +401,61 @@ class TestForeSight(unittest.TestCase):
         mock_response.status_code = 200
         mock_request.return_value = mock_response
 
-        # Add some log entries
+        # Add some log entries and flush
         self.client.log("test_query1", "test_response1", ["context1"])
+        response1 = self.client.flush()
+        self.client.log("test_query2",
+                        "test_response2", ["context2"],
+                        tag="great_model")
+        response2 = self.client.flush()
+        expected_calls = [
+            call(method="put",
+                 url=f"{TEST_URL}/api/eval/log",
+                 headers={"Authorization": f"Bearer {TEST_TOKEN}"},
+                 params=None,
+                 json={
+                     "log_entries": [{
+                         "query": "test_query1",
+                         "inference_output": {
+                             "generated_response": "test_response1",
+                             "source_docids": None,
+                             "contexts": ["context1"],
+                             "debug_info": None
+                         }
+                     }],
+                     "experiment_id_prefix": None
+                 },
+                 timeout=TEST_TIMEOUT),
+            call(method="put",
+                 url=f"{TEST_URL}/api/eval/log",
+                 headers={"Authorization": f"Bearer {TEST_TOKEN}"},
+                 params=None,
+                 json={
+                     "log_entries": [{
+                         "query": "test_query2",
+                         "inference_output": {
+                             "generated_response": "test_response2",
+                             "source_docids": None,
+                             "contexts": ["context2"],
+                             "debug_info": None
+                         }
+                     },],
+                     "experiment_id_prefix": "great_model"
+                 },
+                 timeout=TEST_TIMEOUT)
+        ]
 
-        response = self.client.flush()
-        mock_request.assert_called_with(
-            method="put",
-            url=f"{TEST_URL}/api/eval/log",
-            headers={"Authorization": f"Bearer {TEST_TOKEN}"},
-            params=None,
-            json={
-                "log_entries": [
-                    {
-                        "query": "test_query1",
-                        "inference_output": {
-                            "generated_response": "test_response1",
-                            "source_docids": None,
-                            "contexts": ["context1"],
-                            "debug_info": None
-                        }
-                    }
-                ]
-            },
-            timeout=TEST_TIMEOUT)
+        mock_request.assert_has_calls(expected_calls, any_order=True)
 
         # Assert that log_entries is empty after flushing
-        self.assertEqual(len(self.client.log_entries), 0)
+        self.assertDictEqual(self.client.tag_to_log_entries, {
+            "default": [],
+            "great_model": []
+        })
 
         # Assert the response from flush
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response1.status_code, 200)
+        self.assertEqual(response2.status_code, 200)
 
     @staticmethod
     def get_evalrun_details_sample(

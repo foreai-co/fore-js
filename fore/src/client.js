@@ -370,11 +370,8 @@ class Foresight {
 			};
 
 			tag = tag || DEFAULT_TAG_NAME;
-
-			this.tagToLogEntries[tag] = [
-				...this.tagToLogEntries[tag],
-				logEntry,
-			];
+			const entriesForTag = this.tagToLogEntries[tag] || [];
+			this.tagToLogEntries[tag] = [...entriesForTag, logEntry];
 
 			if (
 				this.tagToLogEntries[tag].length >=

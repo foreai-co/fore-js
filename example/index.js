@@ -65,6 +65,7 @@ const runSample = async () => {
 				query: "What is the easiest programming language?",
 				response: "Python",
 				contexts: ["Python rated the easiest programming language"],
+				tag: "my_awesome_experiment",
 			});
 
 			const status = await foresight.flush();

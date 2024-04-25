@@ -189,8 +189,9 @@ describe("Foresight Test", () => {
 				query: "test query",
 				response: "test response",
 				contexts: [],
+				tag: "great_model",
 			});
-			expect(foresight.logEntries.length).toBe(1);
+			expect(foresight.tagToLogEntries["great_model"].length).toBe(1);
 		});
 
 		it("should auto flush when log entries exceed maxEntriesBeforeAutoFlush", async () => {
@@ -201,10 +202,11 @@ describe("Foresight Test", () => {
 					query: `test query ${i}`,
 					response: `test response ${i}`,
 					contexts: [],
+					tag: "great_model",
 				});
 			}
 
-			expect(foresight.logEntries.length).toBe(0);
+			expect(foresight.tagToLogEntries["great_model"].length).toBe(0);
 		});
 	});
 
@@ -216,10 +218,11 @@ describe("Foresight Test", () => {
 				query: "test query",
 				response: "test response",
 				contexts: [],
+				tag: "great_model",
 			});
 			await foresight.flush();
 
-			expect(foresight.logEntries.length).toBe(0);
+			expect(foresight.tagToLogEntries["great_model"].length).toBe(0);
 		});
 
 		it("should handle no log entries to flush", async () => {
