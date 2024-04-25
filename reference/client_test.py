@@ -1,13 +1,14 @@
 """Tests for the client class."""
 import unittest
 from typing import Any, Dict
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pandas as pd
 
 from fore.foresight.client import Foresight
-from fore.foresight.schema import (EvalRunConfig, EvalRunDetails, EvalsetMetadata,
-                                   InferenceOutput, LogTuple, MetricType)
+from fore.foresight.schema import (EvalRunConfig, EvalRunDetails,
+                                   EvalsetMetadata, InferenceOutput, LogTuple,
+                                   MetricType)
 
 TEST_TOKEN = "VERY_SECRET_TOKEN"
 TEST_URL = "http://foresight:8010"
@@ -20,7 +21,8 @@ class TestForeSight(unittest.TestCase):
 
     def setUp(self):
         self.client = Foresight(
-            api_token=TEST_TOKEN, api_url=TEST_URL,
+            api_token=TEST_TOKEN,
+            api_url=TEST_URL,
             max_entries_before_auto_flush=MAX_ENTRIES_BEFORE_FLUSH)
         self.client.timeout_seconds = TEST_TIMEOUT
 
@@ -65,8 +67,8 @@ class TestForeSight(unittest.TestCase):
 
     @patch("uuid.uuid4")
     @patch("requests.request")
-    def test_create_simple_evalset_with_references(
-            self, mock_request, mock_uuid):
+    def test_create_simple_evalset_with_references(self, mock_request,
+                                                   mock_uuid):
         mock_response = MagicMock()
         mock_response.json.return_value = {
             "evalset_id": "my_evalset",

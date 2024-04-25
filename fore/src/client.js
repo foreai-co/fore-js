@@ -7,6 +7,7 @@ import { camelizeKeys } from "./utils.js";
 const GATEWAY_URL = "https://foresight-gateway.foreai.co";
 const UI_URL = "https://foresight.foreai.co";
 const MAX_ENTRIES_BEFORE_FLUSH = 10;
+const DEFAULT_TAG_NAME = "default";
 
 /** The main client class for the foresight API.
  * @class Foresight
@@ -35,7 +36,7 @@ class Foresight {
 
 		this.axiosInstance = axiosInstance || axios.create();
 		this.timeoutSeconds = 60;
-		this.logEntries = [];
+		this.tagToLogEntries = {};
 		this.logging = console;
 		this.logging.info("Foresight client initialized");
 
@@ -230,14 +231,25 @@ class Foresight {
 	 *   @param {string} params.runConfig.evalsetId - The identifier for the evalset to use for the evaluation.
 	 *   @param {string} params.runConfig.experimentId - The identifier for the evaluation run.
 	 *   @param {MetricType[]} params.runConfig.metrics - The metrics to be computed for the evaluation.
+	 *  @param {number} params.batchSize - The max number of inference outputs to upload in one batch.
 	 * @returns {Promise<string>} - the HTTP response on success or raises an HTTPError on failure.
 	 * @throws {Error} - An error from the API request.
 	 * */
-	async generateAnswersAndRunEval({ generateFn, runConfig }) {
+	async generateAnswersAndRunEval({ generateFn, runConfig, batchSize = 10 }) {
 		try {
 			await this.createEvalrun({ runConfig });
 			const experimentId = runConfig.experimentId;
 			const queries = await this.getEvalrunQueries({ experimentId });
+
+			if (!queries) {
+				this.logging.error(
+					"No queries found for experimentId: %s",
+					experimentId
+				);
+
+				return;
+			}
+
 			const outputs = {};
 
 			for (const [entryId, query] of Object.entries(queries)) {

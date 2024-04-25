@@ -1,4 +1,5 @@
 """The main client class for the foresight API."""
+from collections import defaultdict
 import importlib.util
 import uuid
 import logging
@@ -9,8 +10,8 @@ from requests import Response
 
 from fore.foresight.schema import (CreateEvalsetRequest, EvalRunConfig,
                                    EvalRunDetails, EvalRunEntry, EvalsetEntry,
-                                   EvalsetMetadata, InferenceOutput,
-                                   LogRequest, LogTuple, MetricType,
+                                   EvalsetMetadata, InferenceOutput, LogRequest,
+                                   LogTuple, MetricType,
                                    UploadInferenceOutputsRequest)
 from fore.foresight.utils import convert_to_pandas_dataframe
 
@@ -19,6 +20,7 @@ GenerateFnT = Callable[[str], InferenceOutput]
 GATEWAY_URL = "https://foresight-gateway.foreai.co"
 UI_URL = "https://foresight.foreai.co"
 MAX_ENTRIES_BEFORE_FLUSH = 10
+DEFAULT_TAG_NAME = "default"
 
 
 class Foresight:
@@ -36,7 +38,7 @@ class Foresight:
         self.max_entries_before_auto_flush = max_entries_before_auto_flush
 
         self.timeout_seconds = 60
-        self.log_entries = []
+        self.tag_to_log_entries = defaultdict(list)
         logging.basicConfig(format="foresight %(levelname)s: %(message)s",
                             level=log_level)
         logging.info("Foresight client initialized")
@@ -86,10 +88,9 @@ class Foresight:
             if reference_answers:
                 reference_answer = reference_answers[i]
             entries.append(
-                EvalsetEntry(
-                    query=query,
-                    reference_answer=reference_answer,
-                    entry_id=str(uuid.uuid4())))
+                EvalsetEntry(query=query,
+                             reference_answer=reference_answer,
+                             entry_id=str(uuid.uuid4())))
         evalset = CreateEvalsetRequest(evalset_id=evalset_id,
                                        evalset_entries=entries)
 
@@ -149,8 +150,10 @@ class Foresight:
 
         return response
 
-    def generate_answers_and_run_eval(self, generate_fn: GenerateFnT,
-                                      run_config: EvalRunConfig) -> Response:
+    def generate_answers_and_run_eval(self,
+                                      generate_fn: GenerateFnT,
+                                      run_config: EvalRunConfig,
+                                      batch_size=10):
         """Creates an eval run entry, generates answers and runs the eval.
 
         This method calls the generate_fn on each query in the evalset, triggers
@@ -160,12 +163,17 @@ class Foresight:
             generate_fn: A function that takes a query and returns an
                 InferenceOutput.
             run_config: The configuration for running the eval.
-
-        Returns: the HTTP response on success or raises an HTTPError on failure.
+            batch_size: The max number of inference outputs to upload in one
+                batch.
         """
         self.create_evalrun(run_config=run_config)
         experiment_id = run_config.experiment_id
         queries = self.get_evalrun_queries(experiment_id=experiment_id)
+
+        if not queries:
+            logging.error("No queries found for experiment_id: %s",
+                          experiment_id)
+            return
 
         outputs = {}
         for entry_id, query in queries.items():
