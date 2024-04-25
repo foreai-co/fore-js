@@ -180,19 +180,28 @@ class Foresight:
             inference_output = generate_fn(query)
             outputs[entry_id] = inference_output
 
-        outputs = UploadInferenceOutputsRequest(
-            experiment_id=experiment_id, entry_id_to_inference_output=outputs)
+        for i in range(0, len(outputs), batch_size):
+            outputs_chunk = {
+                k: outputs[k] for k in list(outputs.keys())[i:i + batch_size]
+            }
+            output_request = UploadInferenceOutputsRequest(
+                experiment_id=experiment_id,
+                entry_id_to_inference_output=outputs_chunk)
 
-        response = self.__make_request(
-            method="put",
-            endpoint="/api/eval/run/entries",
-            input_json=outputs.model_dump(mode="json"))
+            res = self.__make_request(
+                method="put",
+                endpoint="/api/eval/run/entries",
+                input_json=output_request.model_dump(mode="json"))
 
-        if response.status_code == 200:
-            logging.info("Eval run successful."
-                         "Visit %s to view results.", self.ui_url)
+            if res.status_code != 200:
+                logging.error(
+                    "Error uploading inference outputs for experiment_id: %s",
+                    experiment_id)
+                return
 
-        return response
+        logging.info(
+            "Eval run started successfully."
+            "Visit %s to view results.", self.ui_url)
 
     def flush(self):
         """Flush the log entries and run evals on them.

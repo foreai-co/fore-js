@@ -261,20 +261,31 @@ class Foresight {
 				};
 			}
 
-			const uploadRequest = {
-				experiment_id: experimentId,
-				entry_id_to_inference_output: outputs,
-			};
+			let response;
+			for (let i = 0; i < Object.keys(outputs).length; i += batchSize) {
+				const outputsChunk = Object.fromEntries(
+					Object.keys(outputs)
+						.slice(i, i + batchSize)
+						.map((k) => [k, outputs[k]])
+				);
 
-			const response = await this._makeRequest({
-				method: "put",
-				endpoint: "/api/eval/run/entries",
-				inputJson: uploadRequest,
-			});
+				const outputRequest = {
+					experiment_id: experimentId,
+					entry_id_to_inference_output: outputsChunk,
+				};
+
+				response = await this._makeRequest({
+					method: "put",
+					endpoint: "/api/eval/run/entries",
+					inputJson: outputRequest,
+				});
+			}
+
 			this.logging.info(
-				"Eval run successful. Visit %s to view results.",
+				"Eval run started successfully. Visit %s to view results.",
 				this.uiUrl
 			);
+
 			return response;
 		} catch (error) {
 			const errorResponse = error.message;
