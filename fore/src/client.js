@@ -7,7 +7,6 @@ import { camelizeKeys } from "./utils.js";
 const GATEWAY_URL = "https://foresight-gateway.foreai.co";
 const UI_URL = "https://foresight.foreai.co";
 const MAX_ENTRIES_BEFORE_FLUSH = 10;
-const DEFAULT_TAG_NAME = "default";
 
 /** The main client class for the foresight API.
  * @class Foresight
@@ -36,7 +35,7 @@ class Foresight {
 
 		this.axiosInstance = axiosInstance || axios.create();
 		this.timeoutSeconds = 60;
-		this.tagToLogEntries = {};
+		this.logEntries = [];
 		this.logging = console;
 		this.logging.info("Foresight client initialized");
 
@@ -231,25 +230,14 @@ class Foresight {
 	 *   @param {string} params.runConfig.evalsetId - The identifier for the evalset to use for the evaluation.
 	 *   @param {string} params.runConfig.experimentId - The identifier for the evaluation run.
 	 *   @param {MetricType[]} params.runConfig.metrics - The metrics to be computed for the evaluation.
-	 *  @param {number} params.batchSize - The max number of inference outputs to upload in one batch.
 	 * @returns {Promise<string>} - the HTTP response on success or raises an HTTPError on failure.
 	 * @throws {Error} - An error from the API request.
 	 * */
-	async generateAnswersAndRunEval({ generateFn, runConfig, batchSize = 10 }) {
+	async generateAnswersAndRunEval({ generateFn, runConfig }) {
 		try {
 			await this.createEvalrun({ runConfig });
 			const experimentId = runConfig.experimentId;
 			const queries = await this.getEvalrunQueries({ experimentId });
-
-			if (!queries) {
-				this.logging.error(
-					"No queries found for experimentId: %s",
-					experimentId
-				);
-
-				return;
-			}
-
 			const outputs = {};
 
 			for (const [entryId, query] of Object.entries(queries)) {
@@ -261,31 +249,20 @@ class Foresight {
 				};
 			}
 
-			let response;
-			for (let i = 0; i < Object.keys(outputs).length; i += batchSize) {
-				const outputsChunk = Object.fromEntries(
-					Object.keys(outputs)
-						.slice(i, i + batchSize)
-						.map((k) => [k, outputs[k]])
-				);
+			const uploadRequest = {
+				experiment_id: experimentId,
+				entry_id_to_inference_output: outputs,
+			};
 
-				const uploadRequest = {
-					experiment_id: experimentId,
-					entry_id_to_inference_output: outputsChunk,
-				};
-
-				response = await this._makeRequest({
-					method: "put",
-					endpoint: "/api/eval/run/entries",
-					inputJson: uploadRequest,
-				});
-			}
-
+			const response = await this._makeRequest({
+				method: "put",
+				endpoint: "/api/eval/run/entries",
+				inputJson: uploadRequest,
+			});
 			this.logging.info(
-				"Eval run started successfully. Visit %s to view results.",
+				"Eval run successful. Visit %s to view results.",
 				this.uiUrl
 			);
-
 			return response;
 		} catch (error) {
 			const errorResponse = error.message;
@@ -303,39 +280,25 @@ class Foresight {
 	 */
 	async flush() {
 		try {
-			const hasEntriesToFlush = Object.values(this.tagToLogEntries).some(
-				(logEntries) => logEntries.length > 0
-			);
-
-			if (!hasEntriesToFlush) {
+			if (this.logEntries.length === 0) {
 				this.logging.info("No log entries to flush.");
 				return;
 			}
 
-			let response;
-			for (const [tag, logEntries] of Object.entries(
-				this.tagToLogEntries
-			)) {
-				const logRequest = { log_entries: logEntries };
-				if (tag !== DEFAULT_TAG_NAME)
-					logRequest.experiment_id_prefix = tag;
+			const logRequest = { log_entries: this.logEntries };
 
-				response = await this._makeRequest({
-					method: "put",
-					endpoint: "/api/eval/log",
-					inputJson: logRequest,
-				});
+			const response = await this._makeRequest({
+				method: "put",
+				endpoint: "/api/eval/log",
+				inputJson: logRequest,
+			});
+			this.logging.log(
+				"Log entries flushed successfully. Visit %s to view results.",
+				this.uiUrl
+			);
 
-				this.logging.log(
-					"Log entries flushed successfully for tag %s. Visit %s to view results.",
-					tag,
-					this.uiUrl
-				);
-
-				// Clear log entries after flushing
-				this.tagToLogEntries[tag] = [];
-			}
-
+			// Clear log entries after flushing
+			this.logEntries = [];
 			return response;
 		} catch (error) {
 			const errorResponse = error.message;
@@ -353,11 +316,8 @@ class Foresight {
 	 *  @param {string} params.query - The query for evaluation.
 	 *  @param {string} params.response - The response from your AI system.
 	 *  @param {string[]} params.contexts - List of contexts relevant to the query.
-	 *  @param {string} params.tag - An optional tag for the request. e.g. "great-model-v01".
-	 *    This will be prepended to the name of the eval run (experiment_id).
-	 *    The complete eval run experiment_id will be of the form: "great-model-v01_logs_groundedness_YYYYMMDD.
 	 */
-	async log({ query, response, contexts, tag }) {
+	async log({ query, response, contexts }) {
 		try {
 			const inferenceOutput = {
 				generated_response: response,
@@ -369,17 +329,9 @@ class Foresight {
 				inference_output: inferenceOutput,
 			};
 
-			tag = tag || DEFAULT_TAG_NAME;
+			this.logEntries.push(logEntry);
 
-			this.tagToLogEntries[tag] = [
-				...this.tagToLogEntries[tag],
-				logEntry,
-			];
-
-			if (
-				this.tagToLogEntries[tag].length >=
-				this.maxEntriesBeforeAutoFlush
-			) {
+			if (this.logEntries.length >= this.maxEntriesBeforeAutoFlush) {
 				// Auto flush if the number of entries is greater than a
 				// certain threshold.
 				await this.flush();
