@@ -6,6 +6,7 @@
   "engines": {
     "node": ">=14.21.3"
   },
+  "main": "./dist/fore.cjs.cjs",
   "exports": {
     ".": {
       "import": "./dist/fore.es.js",
