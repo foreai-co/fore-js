@@ -4,8 +4,7 @@ import humps from "humps";
 
 export const MetricType = {
 	GROUNDEDNESS: "GROUNDEDNESS",
-	SIMILARITY: "SIMILARITY",
-	REFERENCE_FACT_RECALL: "REFERENCE_FACT_RECALL",
+    REFERENCE_FACT_RECALL: "REFERENCE_FACT_RECALL",
 };
 
 export const camelizeKeys = (obj) => {
