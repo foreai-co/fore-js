@@ -3,7 +3,7 @@
 The foresight library within fore SDK allows you to easily evaluate the
 performance of your LLM system based on a variety of metrics.
 
-You can sign-up as a beta tester at https://foreai.co.
+You can try out foresight for free at https://foresight.foreai.co.
 
 ## Quick start
 
@@ -52,7 +52,7 @@ You can sign-up as a beta tester at https://foreai.co.
     const runConfig = {
     	evalsetId: "programming-languages",
     	experimentId: "my-smart-llm",
-    	metrics: [MetricType.GROUNDEDNESS, MetricType.SIMILARITY],
+    	metrics: [MetricType.GROUNDEDNESS, MetricType.REFERENCE_FACT_RECALL],
     };
 
     const myGenerateGn = (query) => {
@@ -100,54 +100,22 @@ Example:
 -   **A2**: _0000._ `[groundedness score = 0.0]`
 -   **A3**: _1234._ `[groundedness score = 0.04]`
 
-### Similarity
+### Reference Fact Recall
 
 Depends on:
+- A user query;
+- An LLM's generated response to be evaluated;
+- A reference response to compare the generated response with.
 
--   LLM's generated response;
--   A reference response to compare the generated response with.
+The metric answers the question: **How many facts from the reference answer does
+the candidate answer mention?**
 
-The metric answers the question: **Is the generated response semantically equivalent
-to the reference response?**
-
-Example:
-
--   **Question**: _Is Python an easy programming language to learn?_
--   **Reference response**: _Python is an easy programming language to learn_
--   **Response 1**: _It is easy to be proficient in python_ `[similarity score = 0.72]`
--   **Response 2**: _Python is widely recognized for its simplicity._ `[similarity score = 0.59]`
--   **Response 3**: _Python is not an easy programming language to learn_ `[similarity score = 0.0]`
-
-### Relevance (coming soon)
-
-Depends on:
-
--   LLM's generated response;
--   User query/question.
-
-The metric answers the question: **Does the response answer the question and
-only the question?**
-
-This metric checks that the answer given by the LLM is trying to answer the
-given question precisely and does not include irrelevant information.
+This metric checks that the answer given by the LLM is mentioning all the facts
+listed in the reference answer. Additional information is not penalised.
 
 Example:
-
--   **Q**: _At which temperature does oxygen boil?_
--   **A1**: _Oxygen boils at -183 °C._ `[relevance score = 1.0]`
--   **A2**: _Oxygen boils at -183 °C and freezes at -219 °C._ `[relevance score = 0.5]`
-
-### Completeness (coming soon)
-
-Depends on:
-
--   LLM's generated response;
--   User query/question.
-
-The metric answers the question: **Are all aspects of the question answered?**
-
-Example:
-
--   **Q**: _At which temperature does oxygen boil and freeze?_
--   **A1**: _Oxygen boils at -183 °C._ `[completeness score = 0.5]`
--   **A2**: _Oxygen boils at -183 °C and freezes at -219 °C._ `[completeness score = 1.0]`
+- **Question**: *Give me a checklist to prepare for my hiking trip to the mountains.*
+- **Reference response**: *You should bring your a water bottle, hiking shoes and sunscreen.* 
+- **Candidate answer 1**: *Here is a list of items to bring: 1) hiking shoes; 2) a water bottle.* `[reference fact recall score = 0.67]`
+- **Candidate answer 2**: *Here is a list of items to bring: 1) backpack with food; 2) hiking shoes; 3) a water bottle.*`[reference fact recall score = 0.67]`
+- **Candidate answer 3**: *Here is a list of items to bring: 1) backpack with food; 2) hiking shoes; 3) a water bottle; 4) sunscreen.*`[reference fact recall score = 1.0]`
