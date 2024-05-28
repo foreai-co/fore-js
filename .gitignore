@@ -4,4 +4,5 @@ node_modules/
 .env.*
 .local/
 .DS_Store
+dist/
 example/package-lock.json

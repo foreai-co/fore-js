@@ -54,7 +54,7 @@ const runSample = async () => {
 				runConfig: {
 					evalsetId,
 					experimentId: experimentId2,
-					metrics: [MetricType.GROUNDEDNESS, MetricType.SIMILARITY],
+					metrics: [MetricType.GROUNDEDNESS, MetricType.REFERENCE_FACT_RECALL],
 				},
 			});
 			console.log("runSample:generateAnswersAndRunEval:", status);
