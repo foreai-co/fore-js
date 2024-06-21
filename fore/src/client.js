@@ -253,11 +253,12 @@ class Foresight {
 			const outputs = {};
 
 			for (const [entryId, query] of Object.entries(queries)) {
-				const { generatedResponse, contexts } = await generateFn(query);
+				const { generatedResponse, contexts, debugInfo } = await generateFn(query);
 
 				outputs[entryId] = {
 					generated_response: generatedResponse,
 					contexts,
+					debug_info: debugInfo
 				};
 			}
 
